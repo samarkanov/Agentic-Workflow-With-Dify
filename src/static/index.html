@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance Dashboard (Static)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gauge-container {
+            position: relative;
+            height: 150px;
+            width: 150px;
+        }
+        .trend-chart-container {
+            height: 250px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gray-800 p-6 flex-shrink-0">
+            <h1 class="text-2xl font-bold mb-8 text-blue-400">🏭 Maintenance</h1>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-400 mb-2">Select Asset</label>
+                <select id="asset-selector" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="asset-001">Turbine A</option>
+                    <option value="asset-002">Compressor B</option>
+                    <option value="asset-003">Pump C</option>
+                </select>
+            </div>
+            <div class="mt-auto pt-8 border-t border-gray-700">
+                <p class="text-xs text-gray-500">Static Simulation v1.0</p>
+                <p id="sim-status" class="text-xs text-green-500 mt-1">● Simulation Running</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center">
+                <h2 id="current-asset-name" class="text-xl font-semibold">Turbine A</h2>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-xs text-gray-400">Current Time</p>
+                        <p id="clock" class="text-sm font-mono font-bold">00:00:00</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Body -->
+            <main class="flex-1 overflow-y-auto p-6 space-y-8">
+                <!-- Gauges Row -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col items-center">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Health Score</h3>
+                        <div class="gauge-container">
+                            <canvas id="gauge-health"></canvas>
+                        </div>
+                        <p id="val-health" class="text-2xl font-bold mt-2 text-green-400">100%</p>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col items-center">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Temperature (°C)</h3>
+                        <div class="gauge-container">
+                            <canvas id="gauge-temp"></canvas>
+                        </div>
+                        <p id="val-temp" class="text-2xl font-bold mt-2 text-blue-400">0.0</p>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col items-center">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Pressure (bar)</h3>
+                        <div class="gauge-container">
+                            <canvas id="gauge-press"></canvas>
+                        </div>
+                        <p id="val-press" class="text-2xl font-bold mt-2 text-blue-400">0.0</p>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col items-center">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Vibration (mm/s)</h3>
+                        <div class="gauge-container">
+                            <canvas id="gauge-vib"></canvas>
+                        </div>
+                        <p id="val-vib" class="text-2xl font-bold mt-2 text-blue-400">0.0</p>
+                    </div>
+                </div>
+
+                <!-- Trends -->
+                <div class="space-y-6">
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Pressure Trend</h3>
+                        <div class="trend-chart-container">
+                            <canvas id="chart-press"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Temperature Trend</h3>
+                        <div class="trend-chart-container">
+                            <canvas id="chart-temp"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-sm font-medium text-gray-400 mb-4">Vibration Trend</h3>
+                        <div class="trend-chart-container">
+                            <canvas id="chart-vib"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts -->
+                <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-700 bg-gray-750">
+                        <h3 class="font-semibold text-red-400 flex items-center">
+                            <span class="mr-2">🚨</span> Active Alerts
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-900 text-xs uppercase text-gray-500">
+                                <tr>
+                                    <th class="px-4 py-3">Timestamp</th>
+                                    <th class="px-4 py-3">Asset</th>
+                                    <th class="px-4 py-3">Severity</th>
+                                    <th class="px-4 py-3">Message</th>
+                                    <th class="px-4 py-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-body" class="text-sm divide-y divide-gray-700">
+                                <!-- Alerts injected here -->
+                            </tbody>
+                        </table>
+                        <div id="no-alerts" class="p-8 text-center text-gray-500">
+                            No active alerts. All systems nominal.
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants & Config ---
+        const P_MIN = 4.0, P_MAX = 8.0;
+        const T_MIN = 30.0, T_MAX = 70.0;
+        const V_MIN = 0.0, V_MAX = 0.5;
+        const HEALTH_THRESHOLD = 40.0;
+        const MAX_HISTORY = 60; // 1 minute of data at 1s intervals
+
+        const assets = {
+            'asset-001': { name: 'Turbine A', history: [], alerts: [], health: 100 },
+            'asset-002': { name: 'Compressor B', history: [], alerts: [], health: 100 },
+            'asset-003': { name: 'Pump C', history: [], alerts: [], health: 100 }
+        };
+
+        let currentAssetId = 'asset-001';
+
+        // --- Utils ---
+        const randRange = (min, max) => Math.random() * (max - min) + min;
+        const formatTime = (date) => date.toTimeString().split(' ')[0];
+
+        // --- Simulation Logic ---
+        function generateTelemetry(assetId) {
+            const asset = assets[assetId];
+            let p, t, v;
+
+            const rand = Math.random();
+            if (rand < 0.02) { // Seal Leakage
+                p = randRange(10.1, 15.0);
+                t = randRange(85.1, 110.0);
+                v = randRange(0.1, 0.4);
+            } else if (rand < 0.04) { // Cavitation
+                p = randRange(0.5, 1.9);
+                t = randRange(40.0, 60.0);
+                v = randRange(2.1, 5.0);
+            } else { // Normal
+                p = randRange(P_MIN, P_MAX);
+                t = randRange(T_MIN, T_MAX);
+                v = randRange(V_MIN, V_MAX);
+            }
+
+            const data = {
+                timestamp: new Date(),
+                pressure: parseFloat(p.toFixed(2)),
+                temperature: parseFloat(t.toFixed(2)),
+                vibration: parseFloat(v.toFixed(4))
+            };
+
+            // Calculate Health
+            const pDev = Math.max(0, P_MIN - p, p - P_MAX);
+            const tDev = Math.max(0, T_MIN - t, t - T_MAX);
+            const vDev = Math.max(0, V_MIN - v, v - V_MAX);
+            let score = 100 - (pDev * 30) - (tDev * 30) - (vDev * 40);
+            score = Math.max(0, Math.min(100, score));
+            asset.health = parseFloat(score.toFixed(2));
+
+            // Alert Detection
+            if (p > 10.0 && t > 85.0) addAlert(assetId, 'High', 'Seal Leakage detected: High Pressure and Temp');
+            if (p < 2.0 && v > 2.0) addAlert(assetId, 'Critical', 'Cavitation detected: Low Pressure and High Vib');
+            if (score < HEALTH_THRESHOLD) addAlert(assetId, 'High', `Low Health Score: ${asset.health}`);
+
+            asset.history.push(data);
+            if (asset.history.length > MAX_HISTORY) asset.history.shift();
+
+            return data;
+        }
+
+        function addAlert(assetId, severity, message) {
+            const asset = assets[assetId];
+            const exists = asset.alerts.some(a => a.message === message && a.status === 'Active');
+            if (!exists) {
+                asset.alerts.unshift({
+                    id: Math.random().toString(36).substr(2, 9),
+                    timestamp: new Date(),
+                    severity,
+                    message,
+                    status: 'Active'
+                });
+            }
+        }
+
+        // --- UI Update Logic ---
+        function updateGauges(data, health) {
+            // In a real app, we'd update the gauge chart data. 
+            // For this static version, we'll update text and maybe color.
+            document.getElementById('val-health').innerText = `${health}%`;
+            document.getElementById('val-health').className = `text-2xl font-bold mt-2 ${health > 70 ? 'text-green-400' : health > 40 ? 'text-yellow-400' : 'text-red-400'}`;
+            
+            document.getElementById('val-temp').innerText = `${data.temperature.toFixed(1)}°C`;
+            document.getElementById('val-press').innerText = `${data.pressure.toFixed(2)} bar`;
+            document.getElementById('val-vib').innerText = `${data.vibration.toFixed(3)} mm/s`;
+
+            // Simple "gauge" effect via chartjs
+            updateGaugeChart(charts.health, health, health > 70 ? '#10B981' : health > 40 ? '#F59E0B' : '#EF4444');
+            updateGaugeChart(charts.temp, (data.temperature / 120) * 100, '#3B82F6');
+            updateGaugeChart(charts.press, (data.pressure / 15) * 100, '#3B82F6');
+            updateGaugeChart(charts.vib, (data.vibration / 5) * 100, '#3B82F6');
+        }
+
+        function updateGaugeChart(chart, value, color) {
+            chart.data.datasets[0].data = [value, 100 - value];
+            chart.data.datasets[0].backgroundColor = [color, '#374151'];
+            chart.update('none');
+        }
+
+        function updateTrends(assetId) {
+            const history = assets[assetId].history;
+            const labels = history.map(h => formatTime(h.timestamp));
+            
+            charts.pressTrend.data.labels = labels;
+            charts.pressTrend.data.datasets[0].data = history.map(h => h.pressure);
+            charts.pressTrend.update('none');
+
+            charts.tempTrend.data.labels = labels;
+            charts.tempTrend.data.datasets[0].data = history.map(h => h.temperature);
+            charts.tempTrend.update('none');
+
+            charts.vibTrend.data.labels = labels;
+            charts.vibTrend.data.datasets[0].data = history.map(h => h.vibration);
+            charts.vibTrend.update('none');
+        }
+
+        function updateAlerts() {
+            const body = document.getElementById('alerts-body');
+            const noAlerts = document.getElementById('no-alerts');
+            let allAlerts = [];
+            
+            Object.keys(assets).forEach(id => {
+                assets[id].alerts.forEach(a => {
+                    if (a.status === 'Active') allAlerts.push({ ...a, assetName: assets[id].name, assetId: id });
+                });
+            });
+
+            allAlerts.sort((a, b) => b.timestamp - a.timestamp);
+
+            if (allAlerts.length === 0) {
+                body.innerHTML = '';
+                noAlerts.classList.remove('hidden');
+                return;
+            }
+
+            noAlerts.classList.add('hidden');
+            body.innerHTML = allAlerts.map(a => `
+                <tr class="hover:bg-gray-750 transition-colors">
+                    <td class="px-4 py-3 font-mono text-xs">${formatTime(a.timestamp)}</td>
+                    <td class="px-4 py-3">${a.assetName}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded text-xs font-bold ${a.severity === 'Critical' ? 'bg-red-900 text-red-200' : 'bg-yellow-900 text-yellow-200'}">
+                            ${a.severity}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-300">${a.message}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="ackAlert('${a.assetId}', '${a.id}')" class="text-blue-400 hover:text-blue-300 font-medium">Ack</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function ackAlert(assetId, alertId) {
+            const alert = assets[assetId].alerts.find(a => a.id === alertId);
+            if (alert) alert.status = 'Acknowledged';
+            updateAlerts();
+        }
+
+        // --- Charts Initialization ---
+        const charts = {};
+
+        function initCharts() {
+            const gaugeConfig = (color) => ({
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: [color, '#374151'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%',
+                    plugins: { tooltip: { enabled: false }, legend: { display: false } }
+                }
+            });
+
+            const trendConfig = (label, color) => ({
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: color + '22',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { display: true, grid: { display: false }, ticks: { color: '#9CA3AF', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+                        y: { grid: { color: '#374151' }, ticks: { color: '#9CA3AF' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            charts.health = new Chart(document.getElementById('gauge-health'), gaugeConfig('#10B981'));
+            charts.temp = new Chart(document.getElementById('gauge-temp'), gaugeConfig('#3B82F6'));
+            charts.press = new Chart(document.getElementById('gauge-press'), gaugeConfig('#3B82F6'));
+            charts.vib = new Chart(document.getElementById('gauge-vib'), gaugeConfig('#3B82F6'));
+
+            charts.pressTrend = new Chart(document.getElementById('chart-press'), trendConfig('Pressure', '#3B82F6'));
+            charts.tempTrend = new Chart(document.getElementById('chart-temp'), trendConfig('Temperature', '#F59E0B'));
+            charts.vibTrend = new Chart(document.getElementById('chart-vib'), trendConfig('Vibration', '#8B5CF6'));
+        }
+
+        // --- App Lifecycle ---
+        function tick() {
+            const now = new Date();
+            document.getElementById('clock').innerText = formatTime(now);
+
+            // Generate data for all assets
+            Object.keys(assets).forEach(id => {
+                const data = generateTelemetry(id);
+                if (id === currentAssetId) {
+                    updateGauges(data, assets[id].health);
+                    updateTrends(id);
+                }
+            });
+
+            updateAlerts();
+        }
+
+        document.getElementById('asset-selector').addEventListener('change', (e) => {
+            currentAssetId = e.target.value;
+            document.getElementById('current-asset-name').innerText = assets[currentAssetId].name;
+            // Immediate update
+            const history = assets[currentAssetId].history;
+            if (history.length > 0) {
+                updateGauges(history[history.length - 1], assets[currentAssetId].health);
+                updateTrends(currentAssetId);
+            }
+        });
+
+        // Initialize
+        initCharts();
+        
+        // Start simulation
+        setInterval(tick, 1000);
+        tick(); // Initial tick
+    </script>
+</body>
+</html>
