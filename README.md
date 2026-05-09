@@ -9,5 +9,5 @@ Today, I'm building an agentic workflow in [Dify](https://dify.ai/) - a no-code 
 
 I'm hiring this team to develop a predictive maintenance application and I'm intentionally choose workflow with no feedback loops between specialist LLMs to check the quality of the generated application. By having this linear workflow, I'm counting on my multi-disciplinary team of specialist LLMs to come up with sharp outputs that (hopefully) don't need further improvements. Here is the workflow I will be building:
 
-![](http://vps-f2ee6846.vps.ovh.net:9002/assets/blog/mar-2026/dify-workflow-feb-2026.svg)
+![](http://samarkanov.info/assets/blog/mar-2026/dify-workflow-feb-2026.svg)
 
